@@ -1,0 +1,38 @@
+{
+  "name": "mcp-cursor",
+  "version": "1.0.0",
+  "type": "module",
+  "bin": {
+    "mcp-cursor": "./build/test/cursor-tool.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node build/index.js",
+    "dev": "ts-node-dev --respawn src/index.ts",
+    "dev:inspect": "ts-node-dev --respawn src/index.ts",
+    "cursor": "node build/test/cursor-tool.js",
+    "test": "node --test build/test/*.test.js"
+  },
+  "files": [
+    "build"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "latest",
+    "@nut-tree/nut-js": "^3.1.2",
+    "active-win": "latest",
+    "clipboardy": "latest",
+    "dotenv": "latest",
+    "fs-extra": "latest",
+    "uuid": "latest",
+    "winston": "^3.11.0",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "latest",
+    "@types/node": "latest",
+    "@types/uuid": "latest",
+    "@types/winston": "^2.4.4",
+    "ts-node-dev": "latest",
+    "typescript": "latest"
+  }
+}
