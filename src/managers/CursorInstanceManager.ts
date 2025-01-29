@@ -1,4 +1,4 @@
-import { CursorInstance } from '../types/cursor.js'
+ import { CursorInstance } from '../types/cursor.js'
 import path from 'path'
 import { spawn } from 'child_process'
 import { v4 as uuidv4 } from 'uuid'

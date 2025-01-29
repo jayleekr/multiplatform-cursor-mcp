@@ -2,7 +2,7 @@ import { keyboard, mouse, Point, Button, Key } from '@nut-tree-fork/nut-js'
 
 export class InputAutomationService {
     private static instance: InputAutomationService
-    private modifierKeys: Set<string> = new Set()
+    private modifierKeys: Set<Key> = new Set()
 
     private constructor() {
         // Configure nut.js
@@ -46,12 +46,12 @@ export class InputAutomationService {
 
     async pressKey(key: string): Promise<void> {
         const keyCode = this.getKeyCode(key)
-        await keyboard.pressKey(keyCode as unknown as string)
+        await keyboard.pressKey(keyCode)
     }
 
     async releaseKey(key: string): Promise<void> {
         const keyCode = this.getKeyCode(key)
-        await keyboard.releaseKey(keyCode as unknown as string)
+        await keyboard.releaseKey(keyCode)
     }
 
     async typeText(text: string): Promise<void> {
@@ -64,16 +64,16 @@ export class InputAutomationService {
             
             // Handle modifier keys specially
             if ([Key.LeftControl, Key.LeftShift, Key.LeftAlt, Key.LeftCmd].includes(keyCode)) {
-                if (!this.modifierKeys.has(keyCode)) {
-                    await keyboard.pressKey(keyCode as unknown as string)
-                    this.modifierKeys.add(keyCode)
+                if (!this.modifierKeys.has(keyCode as Key)) {
+                    await keyboard.pressKey(keyCode)
+                    this.modifierKeys.add(keyCode as Key)
                 }
                 continue
             }
 
             // For regular keys, press and release
-            await keyboard.pressKey(keyCode)
-            await keyboard.releaseKey(keyCode as unknown as string)
+            await keyboard.pressKey(keyCode as Key)
+            await keyboard.releaseKey(keyCode as Key)
         }
 
         // Release any held modifier keys
