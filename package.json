@@ -18,20 +18,19 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "latest",
-    "@nut-tree/nut-js": "^3.1.2",
+    "@nut-tree-fork/nut-js": "^4.2.4",
     "active-win": "latest",
     "clipboardy": "latest",
     "dotenv": "latest",
     "fs-extra": "latest",
     "uuid": "latest",
-    "winston": "^3.11.0",
+    "winston": "latest",
     "zod": "latest"
   },
   "devDependencies": {
     "@types/fs-extra": "latest",
     "@types/node": "latest",
     "@types/uuid": "latest",
-    "@types/winston": "^2.4.4",
     "ts-node-dev": "latest",
     "typescript": "latest"
   }

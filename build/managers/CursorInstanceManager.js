@@ -1,18 +1,18 @@
-import path from 'path';
 import { spawn } from 'child_process';
 import { v4 as uuidv4 } from 'uuid';
-import { WindowsApiService } from '../services/WindowsApiService.js';
-const DEFAULT_CURSOR_PATH = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'cursor', 'Cursor.exe');
+import { WindowManagerFactory } from '../services/window-manager/factory.js';
+import { PathResolver } from '../utils/path-resolver.js';
 export class CursorInstanceManagerImpl {
-    windowsApi;
+    windowManager;
     instances;
     constructor() {
-        this.windowsApi = new WindowsApiService();
+        this.windowManager = WindowManagerFactory.create();
         this.instances = new Map();
     }
     async create(workspacePath) {
         const id = uuidv4();
-        const cursorProcess = spawn(DEFAULT_CURSOR_PATH, workspacePath ? [workspacePath] : [], {
+        const cursorPath = PathResolver.getCursorExecutablePath();
+        const cursorProcess = spawn(cursorPath, workspacePath ? [workspacePath] : [], {
             detached: false,
             stdio: ['ignore', 'pipe', 'pipe'],
             windowsHide: false,
@@ -78,7 +78,8 @@ export class CursorInstanceManagerImpl {
                     return; // Stop checking if process is no longer active
                 }
                 try {
-                    const window = await this.windowsApi.findWindowByProcessId(cursorProcess.pid, { initialCreation: true });
+                    const windowManager = await this.windowManager;
+                    const window = await windowManager.findWindowByProcessId(cursorProcess.pid);
                     if (window) {
                         resolve(window);
                         return;
@@ -119,47 +120,43 @@ export class CursorInstanceManagerImpl {
         }
         return instance;
     }
-    async findWindow(id, pid) {
-        let window = null;
-        let attempts = 0;
-        while (!window && attempts < 10) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            window = await this.windowsApi.findWindowByProcessId(pid, { initialCreation: true });
-            attempts++;
-        }
-        if (!window) {
-            throw new Error('Failed to find Cursor window after launch');
-        }
-        return window;
-    }
-    async sendCharToInstance(id, char) {
+    async sendKeyToInstance(id, keys) {
         const instance = this.getRequired(id);
         if (!instance.window) {
             throw new Error('Window reference lost');
         }
-        const keyCode = await this.windowsApi.getVirtualKeyForChar(char);
-        await this.sendKeyToInstance(id, keyCode);
-    }
-    async sendKeyToInstance(id, virtualKey) {
-        const instance = this.getRequired(id);
-        if (!instance.window) {
-            throw new Error('Window reference lost');
-        }
-        await this.windowsApi.sendKeyToWindow(instance.window, virtualKey);
+        const windowManager = await this.windowManager;
+        await windowManager.sendKeys(instance.window, keys);
     }
     async openCommandPalette(id) {
         const instance = this.getRequired(id);
         if (!instance.window) {
             throw new Error('Window reference lost');
         }
-        await this.windowsApi.openCommandPalette(instance.window);
+        // Send the command palette shortcut (Ctrl+Shift+P or Cmd+Shift+P)
+        const modifierKey = process.platform === 'darwin' ? 'command' : 'control';
+        const windowManager = await this.windowManager;
+        await windowManager.sendKeys(instance.window, [modifierKey, 'shift', 'p']);
     }
     async openClineTab(id) {
         const instance = this.getRequired(id);
         if (!instance.window) {
             throw new Error('Window reference lost');
         }
-        await this.windowsApi.openClineTab(instance.window);
+        // First open command palette
+        await this.openCommandPalette(id);
+        // Wait for command palette to open
+        await new Promise(resolve => setTimeout(resolve, 500));
+        // Type "Cline: Open in New Tab"
+        const text = "Cline: Open in New Tab";
+        for (const char of text) {
+            const windowManager = await this.windowManager;
+            await windowManager.sendKeys(instance.window, [char]);
+            await new Promise(resolve => setTimeout(resolve, 30));
+        }
+        // Press Enter
+        const windowManager = await this.windowManager;
+        await windowManager.sendKeys(instance.window, ['enter']);
     }
     list() {
         return Array.from(this.instances.values());

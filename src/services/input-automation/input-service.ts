@@ -1,4 +1,4 @@
-import { keyboard, mouse, Point, Button } from '@nut-tree/nut-js'
+import { keyboard, mouse, Point, Button, Key } from '@nut-tree-fork/nut-js'
 
 export class InputAutomationService {
     private static instance: InputAutomationService
@@ -18,40 +18,40 @@ export class InputAutomationService {
         return InputAutomationService.instance
     }
 
-    private getKeyCode(key: string): string {
+    private getKeyCode(key: string): Key {
         // Map common key names to nut.js key codes
-        const keyMap: { [key: string]: string } = {
-            'control': 'ControlLeft',
-            'ctrl': 'ControlLeft',
-            'shift': 'ShiftLeft',
-            'alt': 'AltLeft',
-            'command': 'MetaLeft',
-            'cmd': 'MetaLeft',
-            'enter': 'Return',
-            'return': 'Return',
-            'tab': 'Tab',
-            'escape': 'Escape',
-            'esc': 'Escape',
-            'backspace': 'Backspace',
-            'delete': 'Delete',
-            'space': 'Space',
-            'up': 'ArrowUp',
-            'down': 'ArrowDown',
-            'left': 'ArrowLeft',
-            'right': 'ArrowRight'
+        const keyMap: { [key: string]: Key } = {
+            'control': Key.LeftControl,
+            'ctrl': Key.LeftControl,
+            'shift': Key.LeftShift,
+            'alt': Key.LeftAlt,
+            'command': Key.LeftCmd,
+            'cmd': Key.LeftCmd,
+            'enter': Key.Enter,
+            'return': Key.Return,
+            'tab': Key.Tab,
+            'escape': Key.Escape,
+            'esc': Key.Escape,
+            'backspace': Key.Backspace,
+            'delete': Key.Delete,
+            'space': Key.Space,
+            'up': Key.Up,
+            'down': Key.Down,
+            'left': Key.Left,
+            'right': Key.Right
         }
 
-        return keyMap[key.toLowerCase()] || key.toUpperCase()
+        return keyMap[key.toLowerCase()] || key.toUpperCase() as unknown as Key
     }
 
     async pressKey(key: string): Promise<void> {
         const keyCode = this.getKeyCode(key)
-        await keyboard.pressKey(keyCode)
+        await keyboard.pressKey(keyCode as unknown as string)
     }
 
     async releaseKey(key: string): Promise<void> {
         const keyCode = this.getKeyCode(key)
-        await keyboard.releaseKey(keyCode)
+        await keyboard.releaseKey(keyCode as unknown as string)
     }
 
     async typeText(text: string): Promise<void> {
@@ -63,9 +63,9 @@ export class InputAutomationService {
             const keyCode = this.getKeyCode(key)
             
             // Handle modifier keys specially
-            if (['ControlLeft', 'ShiftLeft', 'AltLeft', 'MetaLeft'].includes(keyCode)) {
+            if ([Key.LeftControl, Key.LeftShift, Key.LeftAlt, Key.LeftCmd].includes(keyCode)) {
                 if (!this.modifierKeys.has(keyCode)) {
-                    await keyboard.pressKey(keyCode)
+                    await keyboard.pressKey(keyCode as unknown as string)
                     this.modifierKeys.add(keyCode)
                 }
                 continue
@@ -73,7 +73,7 @@ export class InputAutomationService {
 
             // For regular keys, press and release
             await keyboard.pressKey(keyCode)
-            await keyboard.releaseKey(keyCode)
+            await keyboard.releaseKey(keyCode as unknown as string)
         }
 
         // Release any held modifier keys
@@ -113,4 +113,4 @@ export class InputAutomationService {
     async scrollWheel(amount: number): Promise<void> {
         await mouse.scrollDown(amount)
     }
-} 
+}

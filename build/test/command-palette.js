@@ -1,4 +1,4 @@
-import { WindowsApiService, VirtualKeys } from '../services/WindowsApiService.js';
+import { WindowsApiService } from '../services/WindowsApiService.js';
 import { CursorInstanceManagerImpl } from '../managers/CursorInstanceManager.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -21,7 +21,7 @@ async function testCommandPalette() {
             throw new Error('Cursor instance became inactive during initialization. This may indicate that Cursor is not installed correctly or is missing dependencies.');
         }
         // Verify window title
-        const title = await cursorWindow.getTitle();
+        const title = cursorWindow.title;
         if (!title) {
             throw new Error('Failed to get window title. The window may not be responding.');
         }
@@ -56,12 +56,12 @@ async function testCommandPalette() {
         console.log('Pressing Enter...');
         await windowsApi.simulateKeyboardEvent(cursorWindow, {
             type: 'keyDown',
-            keyCode: VirtualKeys.ENTER
+            keyCode: 13 // Enter key code
         });
         await new Promise(resolve => setTimeout(resolve, 30));
         await windowsApi.simulateKeyboardEvent(cursorWindow, {
             type: 'keyUp',
-            keyCode: VirtualKeys.ENTER
+            keyCode: 13 // Enter key code
         });
         console.log('Command executed!');
         // Keep the process alive for a bit to observe the result
