@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplatform Cursor MCP - Cross-Platform AI Automation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            transition: opacity 0.3s;
+        }
+        
+        .nav-links a:hover {
+            opacity: 0.8;
+        }
+        
+        .hero {
+            text-align: center;
+            padding: 4rem 0;
+            color: white;
+        }
+        
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            animation: fadeInUp 1s ease-out;
+        }
+        
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+            animation: fadeInUp 1s ease-out 0.2s both;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: #ff6b6b;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            transition: transform 0.3s, box-shadow 0.3s;
+            animation: fadeInUp 1s ease-out 0.4s both;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 107, 107, 0.3);
+        }
+        
+        .features {
+            background: white;
+            padding: 4rem 0;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .feature-card {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .stats {
+            background: #2c3e50;
+            color: white;
+            padding: 3rem 0;
+            text-align: center;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .stat-item h3 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: #3498db;
+        }
+        
+        .installation {
+            background: #ecf0f1;
+            padding: 4rem 0;
+        }
+        
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+        }
+        
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+        
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #7f8c8d;
+            margin-bottom: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">🖱️ Cursor MCP</div>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#installation">Installation</a></li>
+                <li><a href="#github">GitHub</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Multiplatform Cursor MCP</h1>
+            <p>Cross-platform AI automation with advanced window management and input control</p>
+            <a href="https://github.com/jayleekr/crashAISANS_newletter" class="cta-button">View on GitHub</a>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">Key Features</h2>
+            <p class="section-subtitle">Powerful automation across Windows, macOS, and Linux</p>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🖥️</div>
+                    <h3>Cross-Platform Window Management</h3>
+                    <p>Seamlessly manage windows across Windows, macOS, and Linux with unified APIs</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">⌨️</div>
+                    <h3>Input Automation</h3>
+                    <p>Automate keyboard and mouse interactions with cross-platform support using @nut-tree/nut-js</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Security Enhanced</h3>
+                    <p>Built-in security features, vulnerability scanning, and comprehensive security testing</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🧩</div>
+                    <h3>MCP Integration</h3>
+                    <p>Model Context Protocol integration for AI-powered automation workflows</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Advanced Logging</h3>
+                    <p>Comprehensive logging system with context tracking and performance monitoring</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🧪</div>
+                    <h3>Comprehensive Testing</h3>
+                    <p>Unit tests, integration tests, and platform-specific testing suites</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats">
+        <div class="container">
+            <h2 class="section-title" style="color: white;">Project Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <h3>3</h3>
+                    <p>Supported Platforms</p>
+                </div>
+                <div class="stat-item">
+                    <h3>27</h3>
+                    <p>Files Updated</p>
+                </div>
+                <div class="stat-item">
+                    <h3>2469+</h3>
+                    <p>Lines Added</p>
+                </div>
+                <div class="stat-item">
+                    <h3>100%</h3>
+                    <p>TypeScript Coverage</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="installation" id="installation">
+        <div class="container">
+            <h2 class="section-title">Quick Installation</h2>
+            <p class="section-subtitle">Get started in minutes with platform-specific installers</p>
+            
+            <div style="text-align: left; max-width: 800px; margin: 0 auto;">
+                <h3>Clone the Repository</h3>
+                <div class="code-block">
+git clone https://github.com/jayleekr/crashAISANS_newletter.git
+cd crashAISANS_newletter
+                </div>
+                
+                <h3>Install Dependencies</h3>
+                <div class="code-block">
+npm install
+                </div>
+                
+                <h3>Platform-Specific Setup</h3>
+                
+                <h4>Windows</h4>
+                <div class="code-block">
+# Run PowerShell as Administrator
+.\scripts\install\windows.ps1
+                </div>
+                
+                <h4>macOS</h4>
+                <div class="code-block">
+# Grant accessibility permissions when prompted
+chmod +x scripts/install/macos.sh
+./scripts/install/macos.sh
+                </div>
+                
+                <h4>Linux</h4>
+                <div class="code-block">
+# Supports apt, dnf, and pacman
+chmod +x scripts/install/linux.sh
+sudo ./scripts/install/linux.sh
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Multiplatform Cursor MCP. Built for cross-platform AI automation.</p>
+            <p>Enhanced with security features, comprehensive testing, and modern development practices.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Add some interactive effects
+        const featureCards = document.querySelectorAll('.feature-card');
+        featureCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.background = '#e3f2fd';
+            });
+            card.addEventListener('mouseleave', function() {
+                this.style.background = '#f8f9fa';
+            });
+        });
+    </script>
+</body>
+</html> 
