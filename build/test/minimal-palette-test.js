@@ -1,4 +1,4 @@
-import robot from 'robotjs';
+import { InputAutomationService } from '../services/input-automation/input-service.js';
 import { spawn } from 'child_process';
 import path from 'path';
 import { windowManager } from 'node-window-manager';
@@ -28,6 +28,7 @@ async function ensureCursorFocus(cursorWindow) {
     return !!newActiveWindow;
 }
 async function typeText(text, cursorWindow) {
+    const inputService = InputAutomationService.getInstance();
     for (const char of text) {
         // Ensure focus before each keystroke
         if (!await ensureCursorFocus(cursorWindow)) {
@@ -36,32 +37,32 @@ async function typeText(text, cursorWindow) {
         }
         // Handle uppercase letters
         if (char >= 'A' && char <= 'Z') {
-            robot.keyToggle('shift', 'down');
-            await new Promise(resolve => setTimeout(resolve, 50));
-            robot.keyTap(char.toLowerCase());
-            await new Promise(resolve => setTimeout(resolve, 50));
-            robot.keyToggle('shift', 'up');
-            await new Promise(resolve => setTimeout(resolve, 50));
+            await inputService.sendKeys(['shift', char.toLowerCase()]);
         }
         // Handle special characters
         else if (char === ':') {
-            robot.keyToggle('shift', 'down');
-            await new Promise(resolve => setTimeout(resolve, 50));
-            robot.keyTap(';'); // On most keyboards, shift+; gives :
-            await new Promise(resolve => setTimeout(resolve, 50));
-            robot.keyToggle('shift', 'up');
-            await new Promise(resolve => setTimeout(resolve, 50));
+            await inputService.sendKeys(['shift', ';']); // On most keyboards, shift+; gives :
         }
         // Handle spaces
         else if (char === ' ') {
-            robot.keyTap('space');
-            await new Promise(resolve => setTimeout(resolve, 50));
+            await inputService.pressKey('space');
         }
         // Handle normal lowercase letters
         else {
-            robot.keyTap(char);
-            await new Promise(resolve => setTimeout(resolve, 50));
+            await inputService.pressKey(char);
         }
+        await new Promise(resolve => setTimeout(resolve, 50));
+    }
+}
+async function openCommandPalette() {
+    try {
+        console.log('Opening command palette with Ctrl+Shift+P...');
+        const inputService = InputAutomationService.getInstance();
+        await inputService.sendKeys(['control', 'shift', 'p']);
+        console.log('Command palette opened successfully');
+    }
+    catch (error) {
+        console.error('Failed to open command palette:', error);
     }
 }
 async function testCommandPalette() {
@@ -86,20 +87,9 @@ async function testCommandPalette() {
             throw new Error('Failed to focus Cursor window');
         }
         console.log('Sending Ctrl+Shift+P...');
-        // Press Ctrl+Shift+P using robotjs
-        robot.keyToggle('control', 'down');
-        await new Promise(resolve => setTimeout(resolve, 50));
-        robot.keyToggle('shift', 'down');
-        await new Promise(resolve => setTimeout(resolve, 50));
-        robot.keyToggle('p', 'down');
-        await new Promise(resolve => setTimeout(resolve, 50));
-        // Release in reverse order with delays
-        robot.keyToggle('p', 'up');
-        await new Promise(resolve => setTimeout(resolve, 50));
-        robot.keyToggle('shift', 'up');
-        await new Promise(resolve => setTimeout(resolve, 50));
-        robot.keyToggle('control', 'up');
-        await new Promise(resolve => setTimeout(resolve, 50));
+        const inputService = InputAutomationService.getInstance();
+        // Press Ctrl+Shift+P using input service
+        await inputService.sendKeys(['control', 'shift', 'p']);
         console.log('Command palette shortcut sent!');
         // Wait for command palette to appear
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -114,7 +104,7 @@ async function testCommandPalette() {
         }
         // Press Enter
         console.log('Pressing Enter...');
-        robot.keyTap('enter');
+        await inputService.pressKey('enter');
         // Keep process alive briefly to observe result
         await new Promise(resolve => setTimeout(resolve, 2000));
         // Cleanup
@@ -131,3 +121,4 @@ testCommandPalette().catch(error => {
     console.error('Unhandled error:', error);
     process.exit(1);
 });
+openCommandPalette();

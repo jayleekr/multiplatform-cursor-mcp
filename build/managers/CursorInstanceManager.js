@@ -2,25 +2,121 @@ import { spawn } from 'child_process';
 import { v4 as uuidv4 } from 'uuid';
 import { WindowManagerFactory } from '../services/window-manager/factory.js';
 import { PathResolver } from '../utils/path-resolver.js';
+import { log } from '../utils/logger.js';
+/**
+ * Security-hardened Cursor Instance Manager
+ * Implements secure process spawning and input validation
+ */
 export class CursorInstanceManagerImpl {
     windowManager;
     instances;
+    securityLogger = log.child('CursorInstanceManager-Security');
+    MAX_INSTANCES = 10;
+    SAFE_ENV_KEYS = new Set([
+        'PATH', 'HOME', 'USER', 'LANG', 'SHELL', 'DISPLAY',
+        'ELECTRON_ENABLE_LOGGING', 'ELECTRON_ENABLE_STACK_DUMPING'
+    ]);
     constructor() {
         this.windowManager = WindowManagerFactory.create();
         this.instances = new Map();
+        this.securityLogger.info('CursorInstanceManager initialized');
+    }
+    /**
+     * Validates instance ID format
+     */
+    validateInstanceId(id) {
+        if (!id || typeof id !== 'string' || !/^[a-f0-9-]{36}$/.test(id)) {
+            throw new Error('Invalid instance ID format');
+        }
+        return id;
+    }
+    /**
+     * Validates and sanitizes key input
+     */
+    validateKeys(keys) {
+        if (!Array.isArray(keys) || keys.length === 0) {
+            throw new Error('Keys must be a non-empty array');
+        }
+        if (keys.length > 50) {
+            throw new Error('Too many keys in sequence (maximum 50)');
+        }
+        const allowedKeys = /^[a-zA-Z0-9\s\-_.()[\]{}|:;'"<>?!@#$%^&*+=~/\\]|control|shift|alt|command|enter|tab|escape|backspace|delete|space|up|down|left|right$/;
+        return keys.map(key => {
+            if (typeof key !== 'string' || key.length > 20) {
+                throw new Error('Invalid key format');
+            }
+            if (!allowedKeys.test(key)) {
+                throw new Error(`Invalid key: ${key}`);
+            }
+            return key;
+        });
+    }
+    /**
+     * Creates a safe environment for process spawning
+     */
+    createSafeEnvironment() {
+        const safeEnv = {};
+        // Copy only safe environment variables
+        for (const [key, value] of Object.entries(process.env)) {
+            if (this.SAFE_ENV_KEYS.has(key) && typeof value === 'string') {
+                safeEnv[key] = value;
+            }
+        }
+        // Add required Electron variables
+        safeEnv.ELECTRON_ENABLE_LOGGING = '1';
+        safeEnv.ELECTRON_ENABLE_STACK_DUMPING = '1';
+        return safeEnv;
     }
     async create(workspacePath) {
+        // Check instance limit
+        if (this.instances.size >= this.MAX_INSTANCES) {
+            throw new Error(`Maximum number of instances (${this.MAX_INSTANCES}) reached`);
+        }
         const id = uuidv4();
-        const cursorPath = PathResolver.getCursorExecutablePath();
-        const cursorProcess = spawn(cursorPath, workspacePath ? [workspacePath] : [], {
+        this.securityLogger.info('Creating new Cursor instance', { instanceId: id });
+        // Validate and sanitize workspace path if provided
+        let validatedWorkspacePath;
+        if (workspacePath) {
+            try {
+                validatedWorkspacePath = PathResolver.validateWorkspacePath(workspacePath);
+                this.securityLogger.debug('Validated workspace path', {
+                    instanceId: id,
+                    workspacePath: validatedWorkspacePath
+                });
+            }
+            catch (error) {
+                this.securityLogger.error('Invalid workspace path provided', {
+                    instanceId: id,
+                    workspacePath,
+                    error: error instanceof Error ? error.message : String(error)
+                });
+                throw new Error(`Invalid workspace path: ${error instanceof Error ? error.message : String(error)}`);
+            }
+        }
+        // Get validated Cursor executable path
+        let cursorPath;
+        try {
+            cursorPath = PathResolver.getCursorExecutablePath();
+        }
+        catch (error) {
+            this.securityLogger.error('Failed to get Cursor executable path', {
+                instanceId: id,
+                error: error instanceof Error ? error.message : String(error)
+            });
+            throw new Error(`Failed to locate Cursor executable: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        // Prepare secure spawn arguments
+        const args = validatedWorkspacePath ? [validatedWorkspacePath] : [];
+        const safeEnv = this.createSafeEnvironment();
+        // Spawn process with security constraints
+        const cursorProcess = spawn(cursorPath, args, {
             detached: false,
             stdio: ['ignore', 'pipe', 'pipe'],
             windowsHide: false,
-            env: {
-                ...process.env,
-                ELECTRON_ENABLE_LOGGING: '1',
-                ELECTRON_ENABLE_STACK_DUMPING: '1'
-            }
+            env: safeEnv,
+            // Additional security options
+            uid: process.getuid?.(), // Maintain user permissions
+            gid: process.getgid?.(),
         });
         const instance = {
             id,
@@ -28,30 +124,59 @@ export class CursorInstanceManagerImpl {
             window: undefined,
             isActive: true,
             createdAt: new Date(),
-            workspacePath
+            workspacePath: validatedWorkspacePath
         };
         this.instances.set(id, instance);
+        this.securityLogger.info('Cursor process spawned', {
+            instanceId: id,
+            processId: cursorProcess.pid
+        });
         // Create a promise that resolves when the window is found or rejects on error
         const windowPromise = new Promise((resolve, reject) => {
             let errorOutput = '';
             let attempts = 0;
             const maxAttempts = 10;
             const checkInterval = 500; // ms
-            // Handle process events
+            // Handle process events with security logging
             cursorProcess.on('error', (error) => {
-                console.error('Process error:', error);
+                this.securityLogger.error('Process error', {
+                    instanceId: id,
+                    processId: cursorProcess.pid,
+                    error: error.message
+                });
                 instance.isActive = false;
                 reject(new Error(`Failed to start Cursor process: ${error.message}`));
             });
-            // Log stdout and stderr
+            // Monitor and log stdout with size limits
             cursorProcess.stdout?.on('data', (data) => {
                 const output = data.toString();
-                console.log('Process stdout for instance', id + ':', output);
+                if (output.length > 10000) { // Limit log size
+                    this.securityLogger.warn('Large stdout output truncated', {
+                        instanceId: id,
+                        size: output.length
+                    });
+                }
+                this.securityLogger.debug('Process stdout', {
+                    instanceId: id,
+                    output: output.substring(0, 1000)
+                });
             });
+            // Monitor and log stderr with security analysis
             cursorProcess.stderr?.on('data', (data) => {
                 const error = data.toString();
-                console.error('Process stderr for instance', id + ':', error);
+                this.securityLogger.error('Process stderr', {
+                    instanceId: id,
+                    error: error.substring(0, 1000)
+                });
                 errorOutput += error;
+                // Check for security-related errors
+                const securityKeywords = ['permission', 'access', 'denied', 'unauthorized', 'privilege'];
+                if (securityKeywords.some(keyword => error.toLowerCase().includes(keyword))) {
+                    this.securityLogger.warn('Potential security-related error detected', {
+                        instanceId: id,
+                        error: error.substring(0, 500)
+                    });
+                }
                 // Check for specific error conditions
                 if (error.includes('Cannot find module')) {
                     const moduleName = error.match(/Cannot find module '([^']+)'/)?.[1];
@@ -61,7 +186,10 @@ export class CursorInstanceManagerImpl {
                 }
             });
             cursorProcess.on('exit', (code) => {
-                console.log('Process exited for instance', id, 'with code:', code);
+                this.securityLogger.info('Process exited', {
+                    instanceId: id,
+                    exitCode: code
+                });
                 instance.isActive = false;
                 this.instances.delete(id);
                 // Provide more helpful error message based on exit code
@@ -69,10 +197,10 @@ export class CursorInstanceManagerImpl {
                     reject(new Error('Cursor process exited normally but window was not created. This may indicate a configuration issue.'));
                 }
                 else {
-                    reject(new Error(`Cursor process exited with code ${code}. Error output: ${errorOutput}`));
+                    reject(new Error(`Cursor process exited with code ${code}. Error output: ${errorOutput.substring(0, 500)}`));
                 }
             });
-            // Check for window periodically
+            // Check for window periodically with timeout
             const checkWindow = async () => {
                 if (!instance.isActive) {
                     return; // Stop checking if process is no longer active
@@ -81,15 +209,27 @@ export class CursorInstanceManagerImpl {
                     const windowManager = await this.windowManager;
                     const window = await windowManager.findWindowByProcessId(cursorProcess.pid);
                     if (window) {
+                        this.securityLogger.info('Window found for instance', {
+                            instanceId: id,
+                            windowId: window.id
+                        });
                         resolve(window);
                         return;
                     }
                 }
                 catch (error) {
-                    console.warn('Error checking for window:', error);
+                    this.securityLogger.warn('Error checking for window', {
+                        instanceId: id,
+                        attempt: attempts + 1,
+                        error: error instanceof Error ? error.message : String(error)
+                    });
                 }
                 attempts++;
                 if (attempts >= maxAttempts) {
+                    this.securityLogger.error('Failed to find window after maximum attempts', {
+                        instanceId: id,
+                        maxAttempts
+                    });
                     reject(new Error('Failed to find Cursor window after maximum attempts. The process may have failed to start properly.'));
                 }
                 else {
@@ -101,81 +241,209 @@ export class CursorInstanceManagerImpl {
         });
         try {
             instance.window = await windowPromise;
+            this.securityLogger.info('Cursor instance created successfully', {
+                instanceId: id,
+                hasWindow: !!instance.window
+            });
             return instance;
         }
         catch (error) {
-            console.error('Error creating Cursor instance:', error);
+            this.securityLogger.error('Error creating Cursor instance', {
+                instanceId: id,
+                error: error instanceof Error ? error.message : String(error)
+            });
             instance.isActive = false;
             this.instances.delete(id);
             throw error;
         }
     }
     get(id) {
-        return this.instances.get(id);
+        try {
+            const validatedId = this.validateInstanceId(id);
+            return this.instances.get(validatedId);
+        }
+        catch (error) {
+            this.securityLogger.warn('Invalid instance ID in get request', {
+                id,
+                error: error instanceof Error ? error.message : String(error)
+            });
+            return undefined;
+        }
     }
     getRequired(id) {
-        const instance = this.instances.get(id);
+        const validatedId = this.validateInstanceId(id);
+        const instance = this.instances.get(validatedId);
         if (!instance) {
-            throw new Error(`No instance found with id: ${id}`);
+            this.securityLogger.warn('Attempted access to non-existent instance', { instanceId: validatedId });
+            throw new Error(`No instance found with id: ${validatedId}`);
+        }
+        if (!instance.isActive) {
+            this.securityLogger.warn('Attempted access to inactive instance', { instanceId: validatedId });
+            throw new Error(`Instance ${validatedId} is not active`);
         }
         return instance;
     }
     async sendKeyToInstance(id, keys) {
+        const validatedKeys = this.validateKeys(keys);
         const instance = this.getRequired(id);
+        this.securityLogger.debug('Sending keys to instance', {
+            instanceId: id,
+            keyCount: validatedKeys.length
+        });
         if (!instance.window) {
             throw new Error('Window reference lost');
         }
-        const windowManager = await this.windowManager;
-        await windowManager.sendKeys(instance.window, keys);
+        try {
+            const windowManager = await this.windowManager;
+            await windowManager.sendKeys(instance.window, validatedKeys);
+            this.securityLogger.debug('Keys sent successfully', {
+                instanceId: id,
+                keyCount: validatedKeys.length
+            });
+        }
+        catch (error) {
+            this.securityLogger.error('Failed to send keys to instance', {
+                instanceId: id,
+                error: error instanceof Error ? error.message : String(error)
+            });
+            throw error;
+        }
     }
     async openCommandPalette(id) {
         const instance = this.getRequired(id);
+        this.securityLogger.debug('Opening command palette', { instanceId: id });
         if (!instance.window) {
             throw new Error('Window reference lost');
         }
-        // Send the command palette shortcut (Ctrl+Shift+P or Cmd+Shift+P)
-        const modifierKey = process.platform === 'darwin' ? 'command' : 'control';
-        const windowManager = await this.windowManager;
-        await windowManager.sendKeys(instance.window, [modifierKey, 'shift', 'p']);
+        try {
+            // Send the command palette shortcut (Ctrl+Shift+P or Cmd+Shift+P)
+            const modifierKey = process.platform === 'darwin' ? 'command' : 'control';
+            const keys = this.validateKeys([modifierKey, 'shift', 'p']);
+            const windowManager = await this.windowManager;
+            await windowManager.sendKeys(instance.window, keys);
+            this.securityLogger.debug('Command palette opened successfully', { instanceId: id });
+        }
+        catch (error) {
+            this.securityLogger.error('Failed to open command palette', {
+                instanceId: id,
+                error: error instanceof Error ? error.message : String(error)
+            });
+            throw error;
+        }
     }
     async openClineTab(id) {
         const instance = this.getRequired(id);
+        this.securityLogger.debug('Opening Cline tab', { instanceId: id });
         if (!instance.window) {
             throw new Error('Window reference lost');
         }
-        // First open command palette
-        await this.openCommandPalette(id);
-        // Wait for command palette to open
-        await new Promise(resolve => setTimeout(resolve, 500));
-        // Type "Cline: Open in New Tab"
-        const text = "Cline: Open in New Tab";
-        for (const char of text) {
+        try {
+            // First open command palette
+            await this.openCommandPalette(id);
+            // Wait for command palette to open
+            await new Promise(resolve => setTimeout(resolve, 500));
+            // Type "Cline: Open in New Tab" with validation
+            const text = "Cline: Open in New Tab";
+            if (text.length > 100) {
+                throw new Error('Command text too long');
+            }
+            for (const char of text) {
+                if (!/^[a-zA-Z0-9\s:]+$/.test(char)) {
+                    throw new Error(`Invalid character in command: ${char}`);
+                }
+                const windowManager = await this.windowManager;
+                await windowManager.sendKeys(instance.window, [char]);
+                await new Promise(resolve => setTimeout(resolve, 30));
+            }
+            // Press Enter
             const windowManager = await this.windowManager;
-            await windowManager.sendKeys(instance.window, [char]);
-            await new Promise(resolve => setTimeout(resolve, 30));
+            await windowManager.sendKeys(instance.window, ['enter']);
+            this.securityLogger.info('Cline tab opened successfully', { instanceId: id });
         }
-        // Press Enter
-        const windowManager = await this.windowManager;
-        await windowManager.sendKeys(instance.window, ['enter']);
+        catch (error) {
+            this.securityLogger.error('Failed to open Cline tab', {
+                instanceId: id,
+                error: error instanceof Error ? error.message : String(error)
+            });
+            throw error;
+        }
     }
     list() {
-        return Array.from(this.instances.values());
+        return Array.from(this.instances.values()).map(instance => ({
+            id: instance.id,
+            process: instance.process,
+            isActive: instance.isActive,
+            createdAt: instance.createdAt,
+            workspacePath: instance.workspacePath
+            // Exclude window reference for security
+        }));
     }
     remove(id) {
-        const instance = this.instances.get(id);
-        if (!instance)
+        try {
+            const validatedId = this.validateInstanceId(id);
+            const instance = this.instances.get(validatedId);
+            if (!instance) {
+                this.securityLogger.warn('Attempted to remove non-existent instance', { instanceId: validatedId });
+                return false;
+            }
+            this.securityLogger.info('Removing instance', { instanceId: validatedId });
+            // Safely terminate the process
+            if (instance.process && !instance.process.killed) {
+                try {
+                    instance.process.kill('SIGTERM');
+                    // Force kill after timeout if needed
+                    setTimeout(() => {
+                        if (!instance.process.killed) {
+                            this.securityLogger.warn('Force killing unresponsive process', { instanceId: validatedId });
+                            instance.process.kill('SIGKILL');
+                        }
+                    }, 5000);
+                }
+                catch (error) {
+                    this.securityLogger.error('Error terminating process', {
+                        instanceId: validatedId,
+                        error: error instanceof Error ? error.message : String(error)
+                    });
+                }
+            }
+            instance.isActive = false;
+            const removed = this.instances.delete(validatedId);
+            this.securityLogger.info('Instance removed', {
+                instanceId: validatedId,
+                success: removed
+            });
+            return removed;
+        }
+        catch (error) {
+            this.securityLogger.error('Error removing instance', {
+                id,
+                error: error instanceof Error ? error.message : String(error)
+            });
             return false;
-        // Kill the process if it's still active
-        if (instance.isActive) {
+        }
+    }
+    /**
+     * Cleanup method to safely shutdown all instances
+     */
+    async cleanup() {
+        this.securityLogger.info('Starting cleanup of all instances', {
+            instanceCount: this.instances.size
+        });
+        const cleanupPromises = Array.from(this.instances.keys()).map(id => new Promise((resolve) => {
             try {
-                instance.process.kill();
+                this.remove(id);
             }
             catch (error) {
-                console.error('Error killing process:', error);
+                this.securityLogger.error('Error during cleanup', {
+                    instanceId: id,
+                    error: error instanceof Error ? error.message : String(error)
+                });
             }
-        }
-        // Remove from instances
-        this.instances.delete(id);
-        return true;
+            finally {
+                resolve();
+            }
+        }));
+        await Promise.all(cleanupPromises);
+        this.securityLogger.info('Cleanup completed');
     }
 }

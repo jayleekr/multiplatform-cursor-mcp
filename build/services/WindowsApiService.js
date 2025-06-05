@@ -1,5 +1,5 @@
 import * as activeWin from 'active-win';
-import robot from 'robotjs';
+import { InputAutomationService } from './input-automation/input-service.js';
 // Maximum retry attempts for window operations
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 500; // ms
@@ -165,12 +165,12 @@ export class WindowsApiService {
         const title = window.title;
         if (!title) {
             // If not focused, try alternative method using screen coordinates
-            const screen = robot.getScreenSize();
-            const centerX = Math.floor(screen.width / 2);
-            const centerY = Math.floor(screen.height / 2);
+            const inputService = InputAutomationService.getInstance();
             // Move mouse to center of screen and click
-            robot.moveMouse(centerX, centerY);
-            robot.mouseClick();
+            const centerX = Math.floor(1920 / 2); // Default screen size, could be improved
+            const centerY = Math.floor(1080 / 2);
+            await inputService.moveMouse(centerX, centerY);
+            await inputService.mouseClick();
             // Additional delay to ensure focus
             await new Promise(resolve => setTimeout(resolve, 100));
             // Final verification
@@ -186,12 +186,18 @@ export class WindowsApiService {
         try {
             // Ensure we're focused on the right window
             await this.ensureWindowFocus(window);
-            const key = String.fromCharCode(keyCode).toLowerCase();
+            const inputService = InputAutomationService.getInstance();
+            const key = String.fromCharCode(keyCode);
             if (!key) {
                 throw new Error(`Unsupported key code: ${keyCode}`);
             }
-            // Toggle the key
-            robot.keyToggle(key, type === KeyboardEventTypes.KeyDown ? 'down' : 'up');
+            // Use input service for key simulation
+            if (type === KeyboardEventTypes.KeyDown) {
+                await inputService.pressKey(key);
+            }
+            else {
+                await inputService.releaseKey(key);
+            }
             // Small delay after event to ensure processing
             await new Promise(resolve => setTimeout(resolve, 30));
         }
@@ -205,20 +211,9 @@ export class WindowsApiService {
             try {
                 // Ensure we're focused on the right window
                 await this.ensureWindowFocus(window);
-                // Press Ctrl+Shift+P using only robotjs
-                robot.keyToggle('control', 'down');
-                await new Promise(resolve => setTimeout(resolve, 50));
-                robot.keyToggle('shift', 'down');
-                await new Promise(resolve => setTimeout(resolve, 50));
-                robot.keyToggle('p', 'down');
-                await new Promise(resolve => setTimeout(resolve, 50));
-                // Release in reverse order with delays
-                robot.keyToggle('p', 'up');
-                await new Promise(resolve => setTimeout(resolve, 50));
-                robot.keyToggle('shift', 'up');
-                await new Promise(resolve => setTimeout(resolve, 50));
-                robot.keyToggle('control', 'up');
-                await new Promise(resolve => setTimeout(resolve, 50));
+                const inputService = InputAutomationService.getInstance();
+                // Press Ctrl+Shift+P using input service
+                await inputService.sendKeys(['control', 'shift', 'p']);
                 // Wait for command palette to appear
                 await new Promise(resolve => setTimeout(resolve, 500));
             }

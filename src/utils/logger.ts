@@ -32,7 +32,7 @@ const logger = createLogger({
         new transports.Console({
             format: format.combine(
                 format.colorize(),
-                format.printf((info: LogEntry) => {
+                format.printf((info) => {
                     const contextStr = info.context ? `[${info.context}] ` : ''
                     const { timestamp, level, message, context, ...meta } = info
                     const metaStr = Object.keys(meta).length ? `\n${JSON.stringify(meta, null, 2)}` : ''

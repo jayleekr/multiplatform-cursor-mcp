@@ -29,9 +29,10 @@ describe('Path Resolver Tests', () => {
             }
         })
 
-        it('should handle missing LOCALAPPDATA on Windows', function() {
+        it('should handle missing LOCALAPPDATA on Windows', () => {
             if (process.platform !== 'win32') {
-                this.skip()
+                // Skip on non-Windows platforms
+                return
             }
             
             const oldLocalAppData = process.env.LOCALAPPDATA
@@ -96,9 +97,10 @@ describe('Path Resolver Tests', () => {
             }
         })
 
-        it('should handle missing APPDATA on Windows', function() {
+        it('should handle missing APPDATA on Windows', () => {
             if (process.platform !== 'win32') {
-                this.skip()
+                // Skip on non-Windows platforms
+                return
             }
             
             const oldAppData = process.env.APPDATA

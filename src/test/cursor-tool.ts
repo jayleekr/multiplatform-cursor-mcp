@@ -1,4 +1,4 @@
-import robot from 'robotjs'
+import { InputAutomationService } from '../services/input-automation/input-service.js'
 import { spawn } from 'child_process'
 import path from 'path'
 import { windowManager } from 'node-window-manager'
@@ -37,6 +37,8 @@ async function ensureCursorFocus(cursorWindow: any): Promise<boolean> {
 }
 
 async function typeText(text: string, cursorWindow: any) {
+    const inputService = InputAutomationService.getInstance()
+    
     for (const char of text) {
         // Ensure focus before each keystroke
         if (!await ensureCursorFocus(cursorWindow)) {
@@ -46,32 +48,22 @@ async function typeText(text: string, cursorWindow: any) {
 
         // Handle uppercase letters
         if (char >= 'A' && char <= 'Z') {
-            robot.keyToggle('shift', 'down')
-            await new Promise(resolve => setTimeout(resolve, 50))
-            robot.keyTap(char.toLowerCase())
-            await new Promise(resolve => setTimeout(resolve, 50))
-            robot.keyToggle('shift', 'up')
-            await new Promise(resolve => setTimeout(resolve, 50))
+            await inputService.sendKeys(['shift', char.toLowerCase()])
         }
         // Handle special characters
         else if (char === ':') {
-            robot.keyToggle('shift', 'down')
-            await new Promise(resolve => setTimeout(resolve, 50))
-            robot.keyTap(';')  // On most keyboards, shift+; gives :
-            await new Promise(resolve => setTimeout(resolve, 50))
-            robot.keyToggle('shift', 'up')
-            await new Promise(resolve => setTimeout(resolve, 50))
+            await inputService.sendKeys(['shift', ';'])  // On most keyboards, shift+; gives :
         }
         // Handle spaces
         else if (char === ' ') {
-            robot.keyTap('space')
-            await new Promise(resolve => setTimeout(resolve, 50))
+            await inputService.pressKey('space')
         }
         // Handle normal lowercase letters
         else {
-            robot.keyTap(char)
-            await new Promise(resolve => setTimeout(resolve, 50))
+            await inputService.pressKey(char)
         }
+        
+        await new Promise(resolve => setTimeout(resolve, 50))
     }
 }
 
@@ -114,25 +106,9 @@ async function executeCursorCommand(commandName: string) {
         
         console.log('Opening command palette...')
         
-        // Press Ctrl+Shift+P using robotjs
-        robot.keyToggle('control', 'down')
-        await new Promise(resolve => setTimeout(resolve, 50))
-        
-        robot.keyToggle('shift', 'down')
-        await new Promise(resolve => setTimeout(resolve, 50))
-        
-        robot.keyToggle('p', 'down')
-        await new Promise(resolve => setTimeout(resolve, 50))
-
-        // Release in reverse order with delays
-        robot.keyToggle('p', 'up')
-        await new Promise(resolve => setTimeout(resolve, 50))
-        
-        robot.keyToggle('shift', 'up')
-        await new Promise(resolve => setTimeout(resolve, 50))
-        
-        robot.keyToggle('control', 'up')
-        await new Promise(resolve => setTimeout(resolve, 50))
+        const inputService = InputAutomationService.getInstance()
+        // Press Ctrl+Shift+P using input service
+        await inputService.sendKeys(['control', 'shift', 'p'])
 
         // Wait for command palette to appear
         await new Promise(resolve => setTimeout(resolve, 500))
@@ -151,7 +127,7 @@ async function executeCursorCommand(commandName: string) {
         
         // Press Enter
         console.log('Confirming command...')
-        robot.keyTap('enter')
+        await inputService.pressKey('enter')
         
         // Keep process alive briefly to observe result
         await new Promise(resolve => setTimeout(resolve, 2000))

@@ -1,4 +1,4 @@
-import { keyboard, mouse, Point, Button } from '@nut-tree/nut-js';
+import { keyboard, mouse, Point, Button, Key } from '@nut-tree-fork/nut-js';
 export class InputAutomationService {
     static instance;
     modifierKeys = new Set();
@@ -17,24 +17,24 @@ export class InputAutomationService {
     getKeyCode(key) {
         // Map common key names to nut.js key codes
         const keyMap = {
-            'control': 'ControlLeft',
-            'ctrl': 'ControlLeft',
-            'shift': 'ShiftLeft',
-            'alt': 'AltLeft',
-            'command': 'MetaLeft',
-            'cmd': 'MetaLeft',
-            'enter': 'Return',
-            'return': 'Return',
-            'tab': 'Tab',
-            'escape': 'Escape',
-            'esc': 'Escape',
-            'backspace': 'Backspace',
-            'delete': 'Delete',
-            'space': 'Space',
-            'up': 'ArrowUp',
-            'down': 'ArrowDown',
-            'left': 'ArrowLeft',
-            'right': 'ArrowRight'
+            'control': Key.LeftControl,
+            'ctrl': Key.LeftControl,
+            'shift': Key.LeftShift,
+            'alt': Key.LeftAlt,
+            'command': Key.LeftCmd,
+            'cmd': Key.LeftCmd,
+            'enter': Key.Enter,
+            'return': Key.Return,
+            'tab': Key.Tab,
+            'escape': Key.Escape,
+            'esc': Key.Escape,
+            'backspace': Key.Backspace,
+            'delete': Key.Delete,
+            'space': Key.Space,
+            'up': Key.Up,
+            'down': Key.Down,
+            'left': Key.Left,
+            'right': Key.Right
         };
         return keyMap[key.toLowerCase()] || key.toUpperCase();
     }
@@ -53,7 +53,7 @@ export class InputAutomationService {
         for (const key of keys) {
             const keyCode = this.getKeyCode(key);
             // Handle modifier keys specially
-            if (['ControlLeft', 'ShiftLeft', 'AltLeft', 'MetaLeft'].includes(keyCode)) {
+            if ([Key.LeftControl, Key.LeftShift, Key.LeftAlt, Key.LeftCmd].includes(keyCode)) {
                 if (!this.modifierKeys.has(keyCode)) {
                     await keyboard.pressKey(keyCode);
                     this.modifierKeys.add(keyCode);
