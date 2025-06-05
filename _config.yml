@@ -1,0 +1,41 @@
+title: "Multiplatform Cursor MCP"
+description: "Cross-platform AI automation with advanced window management and input control"
+baseurl: "/crashAISANS_newletter"
+url: "https://jayleekr.github.io"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+theme: minima
+
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+# Exclude from processing
+exclude:
+  - node_modules/
+  - build/
+  - src/
+  - scripts/
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - .cursorrules
+  - LICENSE
+
+# Collections
+collections:
+  docs:
+    output: true
+    permalink: /:collection/:name/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "docs"
+    values:
+      layout: "page" 
